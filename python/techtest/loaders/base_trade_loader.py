@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Iterable
+from typing import Iterable, Iterator
 
-from techtest.models import Trade, TradeList
+from techtest.models import Trade
+
 
 class BaseTradeLoader(ABC):
-
     # Reads a delimited trade feed file. Subclasses describe the file format and how to build each trade.
 
     # Set by subclasses
@@ -17,12 +17,9 @@ class BaseTradeLoader(ABC):
         self.data_file = data_file
 
     def load_trades(self) -> Iterable[Trade]:
-        trade_list = TradeList()
-        self._load_trades_from_file(self.data_file, trade_list)
+        return self._load_trades_from_file(self.data_file)
 
-        return trade_list
-
-    def _load_trades_from_file(self, filename: str, trade_list: TradeList) -> None:
+    def _load_trades_from_file(self, filename: str) -> Iterator[Trade]:
         # utf-8-sig skips the byte order mark at the start of the file
         with open(filename, encoding="utf-8-sig") as stream:
             for _ in range(self._HEADER_LINES):
@@ -31,7 +28,7 @@ class BaseTradeLoader(ABC):
             for line in stream:
                 if line.split(self._SEPARATOR)[0] == "END":
                     break
-                trade_list.add(self._create_trade_from_line(line.rstrip("\r\n")))
+                yield self._create_trade_from_line(line.rstrip("\r\n"))
 
     @abstractmethod
     def _create_trade_from_line(self, line: str) -> Trade:
